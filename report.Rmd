@@ -23,7 +23,9 @@ library(htmltools) # Required for structuring the report
 
 
 ```{r generate_plots, results='asis'}
-# --- PART 2: PLOTTING (This runs visibly) ---
+# --- GLOBAL MISSING DATA TERMS (UPDATED) ---
+MISSING_TERMS <- c("n/a", "na", "not available", "blank", "none", "no data", "unspecified", "others", "total", "grand total", "sum", "", "<not available>")
+
 # --- HELPER: UNIVERSAL DATA FINDER ---
 get_metric_data <- function(data, target_metric, metric_list) {
   clean_str <- function(x) { tolower(gsub("[. ]", "", x)) }
@@ -41,11 +43,27 @@ get_metric_data <- function(data, target_metric, metric_list) {
   return(matched_data)
 }
 
-# --- 1. GENERATE EXECUTIVE SUMMARY (PARAGRAPH FORM) ---
+# --- HELPER: FORMAT LIST FOR SENTENCES ---
+format_top_list <- function(df) {
+  if(nrow(df) == 0) return("None")
+  
+  df$Category <- as.character(df$Category)
+  
+  items <- paste0("<b>", df$Category, "</b> (", format(df$Value, big.mark=","), ")")
+  
+  if (length(items) > 1) {
+    last <- items[length(items)]
+    rest <- items[-length(items)]
+    return(paste(paste(rest, collapse=", "), "and", last))
+  } else {
+    return(items)
+  }
+}
+
+# --- 1. GENERATE EXECUTIVE SUMMARY ---
 
 summary_sentences <- list()
-
-summary_sentences[[1]] <- "This executive summary highlights the key findings from the selected data metrics, focusing on the highest recorded values for each category. "
+summary_sentences[[1]] <- HTML("This executive summary highlights the key findings from the selected data metrics, focusing on the highest recorded values for each category. ")
 
 for (m in params$metrics) {
   clean_name <- names(params$metric_names)[params$metric_names == m]
@@ -54,21 +72,23 @@ for (m in params$metrics) {
   dat <- get_metric_data(params$data, m, params$metric_names)
   
   if (nrow(dat) > 0) {
-    top_row <- dat %>% 
-      filter(!tolower(Category) %in% c("total", "grand total", "sum")) %>%
+    # Apply filtering for summary
+    dat_clean_summ <- dat %>%
+      filter(!is.na(Category) & trimws(Category) != "") %>%
+      filter(!tolower(trimws(Category)) %in% MISSING_TERMS)
+      
+    top_row <- dat_clean_summ %>% 
       arrange(desc(Value)) %>% slice(1)
       
     if(nrow(top_row) == 0) top_row <- dat %>% arrange(desc(Value)) %>% slice(1)
     
     val_formatted <- format(top_row$Value, big.mark=",")
     
-    # Narrative sentence for Executive Summary
-    current_sentence <- paste0(
-      "Regarding ", tags$strong(clean_name), 
-      ", the highest figure was observed in ", tags$strong(top_row$Category), 
-      " with a total of ", tags$strong(val_formatted), ". "
-    )
-    summary_sentences[[length(summary_sentences) + 1]] <- HTML(current_sentence)
+    current_sentence <- HTML(paste0(
+      "Regarding <b>", clean_name, "</b>, the highest figure was observed in <b>", top_row$Category, 
+      "</b> with a total of <b>", val_formatted, "</b>. "
+    ))
+    summary_sentences[[length(summary_sentences) + 1]] <- current_sentence
   }
 }
 
@@ -81,7 +101,7 @@ summary_section <- tags$div(
 )
 
 
-# --- 2. GENERATE GRAPHS WITH DESCRIPTIONS ---
+# --- 2. GENERATE GRAPHS WITH DETAILED ANALYSIS ---
 
 graph_list <- list()
 
@@ -89,58 +109,120 @@ for (i in seq_along(params$metrics)) {
   
   current_metric <- params$metrics[[i]]
   clean_name <- names(params$metric_names)[params$metric_names == current_metric]
-  if(length(clean_name) == 0) clean_name <- current_metric
+  if(length(clean_name) == 0) clean_name <- m
 
+  # 1. Get Base Data
   plot_data <- get_metric_data(params$data, current_metric, params$metric_names)
 
   if (nrow(plot_data) == 0) {
-    # Empty State
     graph_list[[i]] <- tagList(
       h3(clean_name),
       p(em("No data available for this selection.")),
       hr()
     )
+    next
   } else {
     
-    # --- A. Generate Description Text ---
-    # Find statistics for the narrative
-    top_cat <- plot_data %>% arrange(desc(Value)) %>% slice(1)
-    bottom_cat <- plot_data %>% arrange(Value) %>% slice(1)
-    total_val <- sum(plot_data$Value, na.rm=TRUE)
+    # === MISSING DATA FILTER ===
+    # Filter out categories that are NA, empty, or represent missing data.
+    plot_data_clean <- plot_data %>% 
+      filter(!is.na(Category) & trimws(Category) != "") %>%
+      filter(!tolower(trimws(Category)) %in% MISSING_TERMS)
+      
+    if (nrow(plot_data_clean) == 0) {
+      graph_list[[i]] <- tagList(
+        h3(clean_name),
+        p(em("No valid data points remain after filtering missing categories.")),
+        hr()
+      )
+      next # Skip plotting if no valid data remains
+    }
     
-    description_text <- paste0(
-      "The chart above illustrates the distribution for ", tags$b(clean_name), ". ",
-      "The data indicates that ", tags$b(top_cat$Category), " holds the highest share with ", 
-      format(top_cat$Value, big.mark=","), " instances. ",
-      "Conversely, ", tags$b(bottom_cat$Category), " represents the lowest value in this dataset with ", 
-      format(bottom_cat$Value, big.mark=","), ". ",
-      "The total recorded count across all displayed categories is ", format(total_val, big.mark=","), "."
-    )
+    # --- A. Generate Top 3 / Bottom 3 Analysis & Calculate Total ---
+    
+    # Calculate the total based on the CLEAN data
+    total_val <- sum(plot_data_clean$Value, na.rm=TRUE)
 
-    # --- B. Generate Plot ---
+    # --- NEW LOGIC FOR ANALYSIS NARRATIVE ---
+    if (total_val == 0) {
+        description_text <- paste0(
+            "The chart above illustrates the distribution for <b>", clean_name, "</b>. ",
+            "The total recorded count across all displayed categories is **0**. ",
+            "No positions were recorded for any of the categories at this drill-down level."
+        )
+    } else {
+        # Use plot_data_clean for analysis
+        top_3_df <- plot_data_clean %>% 
+            arrange(desc(Value)) %>% 
+            head(3)
+        
+        bottom_3_df <- plot_data_clean %>% 
+            arrange(Value) %>% 
+            head(3)
+        
+        # Construct Narrative in paragraph form
+        description_text <- paste0(
+            "The chart above illustrates the distribution for <b>", clean_name, "</b>. ",
+            "The total recorded count across all displayed categories is <b>", format(total_val, big.mark=","), "</b>. ",
+            "A detailed look at the breakdown shows the <b>highest 3</b> areas are: ", 
+            format_top_list(top_3_df), ". ",
+            "Conversely, the <b>lowest 3</b> areas are: ", 
+            format_top_list(bottom_3_df), "."
+        )
+    }
+    # --- END OF NEW LOGIC ---
+    
+    # --- B. Prepare Data for Plotting ---
+    
+    # 1. Add "TOTAL" Row (This row is separate from plot_data_clean)
+    total_row <- data.frame(
+      Category = "TOTAL", 
+      Value = total_val, 
+      Metric = current_metric, 
+      stringsAsFactors = FALSE
+    )
+    
+    # Combine the *clean* data with the synthetic TOTAL row
+    plot_data_final <- dplyr::bind_rows(plot_data_clean, total_row)
+    
+    # 2. Set Factor Levels (TOTAL at bottom, then Descending up to top)
+    sorted_cats_asc <- plot_data_clean %>% arrange(Value) %>% pull(Category)
+    final_levels <- c("TOTAL", as.character(sorted_cats_asc)) # Ensure factor levels are character
+    plot_data_final$Category <- factor(plot_data_final$Category, levels = final_levels)
+    
+    # --- C. Generate Plot (Numbers Outside & Smaller Range Buffer) ---
+    # Adjust max range if total is zero to prevent large empty space
+    max_range <- if (total_val == 0) 1 else (max(plot_data_final$Value, na.rm=TRUE) * 1.25)
+    
     p <- plot_ly(
-      data = plot_data,
+      data = plot_data_final,
       y = ~Category,
       x = ~Value,
       type = 'bar',
       orientation = 'h',
-      marker = list(color = '#003366')
+      marker = list(color = '#003366'),
+      text = ~format(Value, big.mark = ","), 
+      textposition = 'outside',            
+      cliponaxis = FALSE                   
     ) %>%
       layout(
         title = "",
-        xaxis = list(title = "Value"),
+        xaxis = list(
+          title = "Value", 
+          range = c(0, max_range) 
+        ),
         yaxis = list(title = "")
       )
     
-    # --- C. Combine into Section ---
+    # --- D. Combine into Section ---
     graph_list[[i]] <- tagList(
-      h3(clean_name, style="margin-top: 30px; color: #003366;"), # Metric Title
-      p,                                                         # The Graph
-      tags$div(                                                  # The Description Box
+      h3(clean_name, style="margin-top: 30px; color: #003366;"), 
+      p,                                                         
+      tags$div(                                                  
         style="margin-top: 15px; padding: 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; color: #555;",
         tags$b("Analysis:"), HTML(description_text)
       ),
-      hr(style="margin-top: 30px; border-top: 2px solid #eee;")  # Separator
+      hr(style="margin-top: 30px; border-top: 2px solid #eee;")  
     )
   }
 }

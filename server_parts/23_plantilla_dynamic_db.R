@@ -318,6 +318,11 @@ observe({
       
       df <- df_sub()
       
+      # --- NEW FILTER: Remove rows where Region or Division is <not available> ---
+      df <- df %>%
+        filter(GMIS.Region != "<not available>", GMIS.Division != "<not available>")
+      # --------------------------------------------------------------------------
+      
       # --- LEVEL 1: Region View ---
       if (is.null(state$region)) {
         plot_data <- df %>%
@@ -526,7 +531,10 @@ output$generate_report_plantilla <- downloadHandler(
       # C. Summarize (Filled vs Unfilled)
       # We create TWO entries for the report: one for Filled, one for Unfilled
       summ <- d %>%
-        group_by(.data[[group_col]]) %>%
+        # --- NEW FILTER for Report: Remove <not available> values ---
+        filter(GMIS.Region != "<not available>", GMIS.Division != "<not available>") %>% 
+        # -----------------------------------------------------------
+      group_by(.data[[group_col]]) %>%
         summarise(
           Filled = sum(Total.Filled, na.rm=TRUE),
           Unfilled = sum(Total.Unfilled, na.rm=TRUE)
