@@ -202,15 +202,41 @@ Shiny.addCustomMessageHandler("firebase-create_user", function(message) {
             });
         });
 
-        // 4. Google Login Handler
+        // 4. Google Login Handler (RESTRICTED TO DEPED)
         Shiny.addCustomMessageHandler("firebase-google-auth", function(message) {
           console.log("🔥 JS: Received Google login command.");
           if(typeof showLoader === "function") showLoader("Connecting to Google...");
 
           var provider = new firebase.auth.GoogleAuthProvider();
+          
+          // 1. UX HINT: Ask Google to prefer the DepEd domain
+          provider.setCustomParameters({
+            hd: "deped.gov.ph" 
+          });
+
           firebase.auth().signInWithPopup(provider)
             .then((result) => {
               var user = result.user;
+              
+              // 2. HARD SECURITY CHECK
+              // If the email is NOT from DepEd, block it.
+              if (!user.email.endsWith("@deped.gov.ph")) {
+                 console.error("❌ JS: Restricted Domain. Blocked " + user.email);
+                 
+                 // Alert the user
+                 alert("Access Denied: Only @deped.gov.ph accounts are allowed.");
+                 
+                 // Immediately Sign Out to prevent access
+                 firebase.auth().signOut();
+                 
+                 // Hide loader and STOP execution (do not send success to R)
+                 if(typeof hideLoader === "function") hideLoader();
+                 return; 
+              }
+
+              // 3. If Valid, Proceed
+              console.log("✅ JS: Valid DepEd Google Login:", user.email);
+              
               Shiny.setInputValue("login_success_manual", {
                 email: user.email,
                 uid: user.uid,
@@ -219,6 +245,10 @@ Shiny.addCustomMessageHandler("firebase-create_user", function(message) {
             })
             .catch((error) => {
               console.error("❌ JS: Google Login Failed", error.message);
+              // Handle popup closed by user
+              if (error.code !== "auth/popup-closed-by-user") {
+                 alert("Login Error: " + error.message);
+              }
               if(typeof hideLoader === "function") hideLoader();
             });
         });

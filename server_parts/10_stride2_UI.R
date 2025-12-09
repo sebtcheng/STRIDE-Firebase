@@ -12,37 +12,55 @@ output$STRIDE2 <- renderUI({
   navbar_title_ui <- tags$a(
     class = "navbar-brand d-flex align-items-center me-auto",
     href = "#",
-    tags$img(src = "logo3.png", height = "87px", style = "margin-right: 9px;
-    margin-left: 20px;
-    margin-top: 20px;"),
-    tags$div(
-      tags$img(src = "Stridelogo1.png", height = "74px", style = "margin-right: -3px; padding-top: 11px; margin-top: -35px;"),
-      tags$small("Strategic Inventory for Deployment Efficiency", style = "font-size: 17px; color: #3d3232; display: block; line-height: 1; margin-block: -21px")
+    
+    # 1. Logo Image
+    tags$img(
+      src = "logo3.png", 
+      height = "87px", 
+      style = "margin-top: 20px; margin-left: 20px; margin-right: 9px;"
     ),
+    
+    # 2. Text Container
+    tags$div(
+      tags$img(
+        src = "Stridelogo1.png", 
+        height = "74px", 
+        style = "margin-top: -35px; margin-right: -3px; padding-top: 11px;"
+      ),
+      tags$small(
+        "Strategic Inventory for Deployment Efficiency", 
+        style = "font-size: 17px; color: #3d3232; display: block; line-height: 1; margin-top: -21px;"
+      )
+    ),
+    
+    # 3. Head Elements (JS & CSS)
     tags$head(
-      # --- INJECT JAVASCRIPT FOR DRAWER (NEW) ---
-      tags$script(HTML("
-        function toggleHelpDrawer() {
-          var drawer = document.getElementById('strideHelpDrawer');
-          var overlay = document.getElementById('strideHelpOverlay');
-          if (drawer.classList.contains('open')) {
-            drawer.classList.remove('open');
-            overlay.style.display = 'none';
-          } else {
-            drawer.classList.add('open');
-            overlay.style.display = 'block';
-          }
-        }
-        function switchTab(tabId) {
-          document.querySelectorAll('.drawer-tab-pane').forEach(el => el.style.display = 'none');
-          document.querySelectorAll('.drawer-tab-btn').forEach(el => el.classList.remove('active'));
-          document.getElementById(tabId).style.display = 'block';
-          event.target.classList.add('active');
-        }
-      ")),
       
+      # --- A. HELP DRAWER JAVASCRIPT ---
+      tags$script(HTML("
+      function toggleHelpDrawer() {
+        var drawer = document.getElementById('strideHelpDrawer');
+        var overlay = document.getElementById('strideHelpOverlay');
+        if (drawer.classList.contains('open')) {
+          drawer.classList.remove('open');
+          overlay.style.display = 'none';
+        } else {
+          drawer.classList.add('open');
+          overlay.style.display = 'block';
+        }
+      }
+
+      function switchTab(tabId) {
+        document.querySelectorAll('.drawer-tab-pane').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.drawer-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).style.display = 'block';
+        event.target.classList.add('active');
+      }
+    ")),
+      
+      # --- B. APP STYLING (CSS) ---
       tags$style(HTML("
-     /* --- YOUR EXISTING NAVBAR CSS --- */
+      /* --- NAVBAR & BODY --- */
       .navbar {
         position: fixed; 
         top: 0;          
@@ -56,8 +74,10 @@ output$STRIDE2 <- renderUI({
         padding-top: 100px; 
         background-color: #f4f6f9;
       }
+      
+      .navbar-nav { align-items: center; } 
 
-     /* --- FINAL SIDEBAR FIX --- */
+      /* --- STICKY SIDEBAR --- */
       .sticky-sidebar {
         position: -webkit-sticky !important;
         position: sticky !important;
@@ -68,28 +88,29 @@ output$STRIDE2 <- renderUI({
         overflow-y: auto !important;
         z-index: 1001 !important;
       }
-      
-      /* --- DEPED THEMED DRAWER CSS (NEW) --- */
+
+      /* --- HELP DRAWER CONTAINER --- */
       .help-drawer-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 51, 102, 0.3); /* Slight Blue Tint Overlay */
+        background: rgba(0, 51, 102, 0.3);
         backdrop-filter: blur(2px);
         z-index: 1040; display: none;
       }
       
       .help-drawer {
-        position: fixed; top: 0; right: -600px; /* Wider drawer for manual */
+        position: fixed; top: 0; right: -600px;
         width: 550px; height: 100vh;
         background: white; 
         box-shadow: -5px 0 25px rgba(0,0,0,0.2);
-        border-top: 8px solid #CE1126; /* DepEd RED Top Border */
-        z-index: 1050; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: 8px solid #CE1126; /* DepEd Red */
+        z-index: 1050; 
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto; display: flex; flex-direction: column;
       }
       
       .help-drawer.open { right: 0; }
-      
-      /* Header Styling */
+
+      /* --- DRAWER HEADER --- */
       .drawer-header { 
         padding: 20px 25px; 
         background: #003366; /* DepEd Blue */
@@ -103,8 +124,8 @@ output$STRIDE2 <- renderUI({
         opacity: 0.8;
       }
       .btn-close-white:hover { opacity: 1; }
-      
-      /* Tab Styling */
+
+      /* --- DRAWER TABS --- */
       .drawer-tabs {
         padding: 0; background: #fff; border-bottom: 1px solid #eee;
         display: flex; justify-content: space-around;
@@ -121,23 +142,30 @@ output$STRIDE2 <- renderUI({
       .drawer-tab-btn:hover { color: #003366; background: #f8f9fa; }
       
       .drawer-tab-btn.active { 
-        color: #CE1126; /* DepEd RED Active Text */
-        border-bottom: 4px solid #CE1126; /* DepEd RED Active Line */
+        color: #CE1126; 
+        border-bottom: 4px solid #CE1126; 
         background-color: rgba(206, 17, 38, 0.03);
       }
+
+      /* --- DRAWER CONTENT --- */
+      .drawer-content { 
+        padding: 25px; flex-grow: 1; 
+        font-size: 0.95rem; background-color: #fcfcfc; 
+      }
       
-      /* Content Area */
-      .drawer-content { padding: 25px; flex-grow: 1; font-size: 0.95rem; background-color: #fcfcfc; }
-      
-      /* Introduction Box */
       .drawer-intro {
-        background-color: #fff; border-left: 5px solid #FFB81C; /* Gold Accent */
+        background-color: #fff; 
+        border-left: 5px solid #FFB81C; /* Gold Accent */
         padding: 15px; margin-bottom: 20px; border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       }
-      
-      /* Accordion Styling (DepEd Theme) */
-      .accordion-item { border: 1px solid #e0e0e0; margin-bottom: 8px; border-radius: 6px !important; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+
+      /* --- ACCORDION (DEPED THEME) --- */
+      .accordion-item { 
+        border: 1px solid #e0e0e0; margin-bottom: 8px; 
+        border-radius: 6px !important; overflow: hidden; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+      }
       
       .accordion-button { 
         font-weight: 600; color: #003366; background-color: #ffffff; 
@@ -148,20 +176,20 @@ output$STRIDE2 <- renderUI({
       
       .accordion-button:not(.collapsed) { 
         color: #ffffff; 
-        background-color: #003366; /* Active Header becomes Blue */
+        background-color: #003366; 
         box-shadow: inset 0 -1px 0 rgba(0,0,0,.125); 
       }
       
       .accordion-button:not(.collapsed)::after {
-        filter: brightness(0) invert(1); /* Make arrow white */
+        filter: brightness(0) invert(1);
       }
       
       .accordion-body { 
         font-size: 0.9rem; line-height: 1.6; color: #333; 
         padding: 20px; background: #fff;
       }
-      
-      /* Manual Content Styles */
+
+      /* --- MANUAL & FAQ ITEMS --- */
       .manual-section-title { 
         color: #003366; font-weight: 700; 
         margin-top: 20px; margin-bottom: 8px; 
@@ -175,7 +203,6 @@ output$STRIDE2 <- renderUI({
         margin: 15px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
       }
       
-      /* FAQ & Glossary Cards */
       .faq-item, .glossary-item { 
         background: white; padding: 15px; 
         border-radius: 8px; border: 1px solid #eee; 
@@ -183,26 +210,23 @@ output$STRIDE2 <- renderUI({
         transition: transform 0.2s;
       }
       .faq-item:hover, .glossary-item:hover {
-        transform: translateX(5px); border-left: 3px solid #CE1126; /* Red Hover */
+        transform: translateX(5px); border-left: 3px solid #CE1126;
       }
       
       .glossary-term { font-weight: 700; color: #003366; display: block; font-size: 1rem; margin-bottom: 5px;}
       .faq-q { font-weight: 700; color: #003366; display: block; margin-bottom: 8px; }
       .faq-a { color: #444; margin-bottom: 0; font-size: 0.9rem; }
-      
-      /* Responsive fix for mobile */
-      @media (max-width: 600px) {
-        .help-drawer { width: 100%; right: -100%; }
-      }
-      
-      .navbar-nav { align-items: center; } /* Fix for vertical divider */
 
-      /* --- OTHER CSS --- */
+      /* --- UTILITIES --- */
       .js-plotly-plot .plotly .modebar {
          top: -30px !important;
       }
+
+      @media (max-width: 600px) {
+        .help-drawer { width: 100%; right: -100%; }
+      }
     "))
-    ),
+    )
   ) # End navbar_title_ui
   
   
