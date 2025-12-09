@@ -713,8 +713,13 @@ output$LMSTable <- renderDT(server = FALSE, {
   
   datatable(
     finalLMS,
-    options = list(scrollX = TRUE, pageLength = 10, dom = get_dt_dom('Bfrtip'),
-                   buttons = list('csv', 'excel', 'pdf', 'print'), columnDefs = list(list(className = 'dt-center', targets = "_all"))),
+    options = list(
+      scrollX = TRUE, 
+      pageLength = 10, 
+      dom = 'Bfrtip', # <--- FIXED HERE
+      buttons = list('csv', 'excel', 'pdf', 'print'), 
+      columnDefs = list(list(className = 'dt-center', targets = "_all"))
+    ),
     selection = "single",
     extension = 'Buttons',
     rownames = FALSE,
@@ -729,7 +734,13 @@ output$TeacherShortage_Table <- DT::renderDT(server = FALSE, {
               rename("School" = School.Name, "Shortage" = TeacherShortage, "Excess" = TeacherExcess), 
             extension = 'Buttons', 
             rownames = FALSE, 
-            options = list(scrollX = TRUE, pageLength = 10, columnDefs = list(list(className = 'dt-center', targets ="_all")), dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE, 
+              pageLength = 10, 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 # ----- AO2 Table -----
@@ -739,7 +750,12 @@ output$AO2Table <- DT::renderDT({
               rename("School" = School.Name, "AO II Deployment" = Clustering.Status, "PDOI Deployment" = PDOI_Deployment), 
             rownames = FALSE, 
             filter = 'top', 
-            options = list(scrollX = TRUE, columnDefs = list(list(className = 'dt-center', targets ="_all")), dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE, 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 # ----- CL Table -----
@@ -748,7 +764,14 @@ output$CLTable <- DT::renderDT(server = FALSE, {
               select("School.Name","Enrolment.2023.2024","Instructional.Rooms.2023.2024","Est.CS","Buidable_space") %>% 
               rename("School" = School.Name, "Total Enrolment" = Enrolment.2023.2024, "Classroom Inventory" = Instructional.Rooms.2023.2024, "Estimate Classroom Shortage" = Est.CS, "Buildable Space" = Buidable_space), 
             filter = 'top', 
-            options = list(scrollX = TRUE,scrollY= "300px", columnDefs = list(list(className = 'dt-center', targets ="_all")), rownames = FALSE, dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE,
+              scrollY= "300px", 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              rownames = FALSE, 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 # ----- SHS Table -----
@@ -758,7 +781,13 @@ output$SHSListTable <- DT::renderDT(server = FALSE, {
               rename("School" = School.Name, "Total Enrolment" = TotalEnrolment), 
             extension = 'Buttons', 
             rownames = FALSE, 
-            options = list(scrollX = TRUE, pageLength = 5, columnDefs = list(list(className = 'dt-center', targets ="_all")), dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE, 
+              pageLength = 5, 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 # ----- Facilities Table -----
@@ -768,7 +797,13 @@ output$FacTable <- DT::renderDT(server = FALSE, {
               rename("School" = School.Name, "Funding Year" = FundingYear),
             extension = 'Buttons',
             rownames = FALSE,
-            options = list(scrollX = TRUE, pageLength = 10, columnDefs = list(list(className = 'dt-center', targets ="_all")), dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE, 
+              pageLength = 10, 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 # ----- Congestion Table -----
@@ -778,7 +813,13 @@ output$CongestTable <- DT::renderDT(server = FALSE, {
               rename("School" = School.Name, "Instructional Rooms" = Instructional.Rooms.2023.2024, "Total Enrolment" = Enrolment.2023.2024, "Congestion Index" = Congestion.Index),
             extension = 'Buttons',
             rownames = FALSE,
-            options = list(scrollX = TRUE, pageLength = 10, columnDefs = list(list(className = 'dt-center', targets ="_all")), dom = get_dt_dom('Bfrtip'), buttons = list('csv','excel','pdf','print')))
+            options = list(
+              scrollX = TRUE, 
+              pageLength = 10, 
+              columnDefs = list(list(className = 'dt-center', targets ="_all")), 
+              dom = 'Bfrtip', # <--- FIXED HERE
+              buttons = list('csv','excel','pdf','print')
+            ))
 })
 
 
