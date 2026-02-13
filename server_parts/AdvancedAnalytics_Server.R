@@ -252,7 +252,43 @@ observeEvent(input$adv_drill_back_btn, {
 })
 
 
-# --- 4d. Render the interactive plot ---
+# --- 4d. Download Handler ---
+output$download_adv_data <- downloadHandler(
+  filename = function() {
+    paste("Advanced_Statistics_Data_", format(Sys.time(), "%Y-%m-%d_%H-%M-%S"), ".csv", sep = "")
+  },
+  content = function(file) {
+    req(drilled_data_and_level())
+    data_to_download <- drilled_data_and_level()$data
+    
+    # Define Fixed Columns
+    fixed_cols <- c("Region", "Division", "District", "Legislative.District", "School.Name", "SchoolID", "TotalEnrolment", "Instructional.Rooms.2023.2024")
+    
+    # Identify Dynamic Columns from active filters
+    dynamic_cols <- c()
+    ids <- active_filter_ids()
+    if (length(ids) > 0) {
+      for (id in ids) {
+        col_name <- input[[paste0("adv_col_", id)]]
+        if (!is.null(col_name) && col_name != "") {
+          dynamic_cols <- c(dynamic_cols, col_name)
+        }
+      }
+    }
+    dynamic_cols <- unique(dynamic_cols)
+    
+    # Combine and Select
+    all_cols <- unique(c(fixed_cols, dynamic_cols))
+    existing_cols <- intersect(all_cols, names(data_to_download))
+    
+    out_df <- data_to_download %>%
+      select(all_of(existing_cols))
+      
+    write.csv(out_df, file, row.names = FALSE)
+  }
+)
+
+# --- 4e. Render the interactive plot ---
 output$advanced_drilldown_plot <- renderPlot({
   
   req(drilled_data_and_level())
@@ -272,17 +308,25 @@ output$advanced_drilldown_plot <- renderPlot({
   
   current_index <- match(drill_level, drill_levels)
   
+  # Calculate Total for Title
+  total_schools <- tryCatch({
+    if (is.null(drilled_data_and_level())) {
+      0 
+    } else {
+      d <- drilled_data_and_level()
+      if (is.null(d$data)) 0 else nrow(d$data)
+    }
+  }, error = function(e) 0)
   
-  # Calculate total schools in the current filtered view
-  total_schools <- nrow(drilled_data_and_level()$data)
-  formatted_total <- format(total_schools, big.mark = ",")
+  total_schools_str <- format(total_schools, big.mark = ",", scientific = FALSE)
   
   if (current_index == length(drill_levels)) {
-    title_text <- paste0("School Count by ", drill_level, " (Total Schools: ", formatted_total, ")")
+    # remove (Top 25) and bold total
+    title_expr <- bquote("School Count by" ~ .(drill_level) ~ "- Total:" ~ bold(.(total_schools_str)))
     subtitle_text <- "End of drilldown. See table and map below."
   } else {
     next_level <- drill_levels[current_index + 1]
-    title_text <- paste0("School Count by ", next_level, " (Total Schools: ", formatted_total, ")")
+    title_expr <- bquote("School Count by" ~ .(next_level) ~ "- Total:" ~ bold(.(total_schools_str)))
     subtitle_text <- paste("Click a bar to drill down into a", next_level)
   }
   
@@ -290,7 +334,7 @@ output$advanced_drilldown_plot <- renderPlot({
     geom_col(fill = "#007bff") + 
     geom_text(aes(label = School_Count), hjust = -0.1, size = 3.5) +
     labs(
-      title = title_text,
+      title = title_expr,
       subtitle = subtitle_text,
       x = "Number of Schools",
       y = if(current_index < length(drill_levels)) drill_levels[current_index+1] else drill_level
@@ -303,7 +347,7 @@ output$advanced_drilldown_plot <- renderPlot({
 }, res = 96)
 
 
-# --- 4e. Observer for plot clicks ---
+# --- 4f. Observer for plot clicks ---
 observeEvent(input$adv_plot_click, {
   
   print("--- PLOT CLICK DETECTED! ---") 
@@ -475,54 +519,3 @@ observeEvent(input$advanced_data_table_rows_selected, {
     print(paste("--- MAP SETVIEW ERROR:", e$message, "---"))
   })
 })
-
-# --- 6. New Features: Total Count & Download ---
-
-# --- 6a. Render Total Schools Count ---
-output$adv_total_schools <- renderText({
-  req(drilled_data_and_level())
-  data <- drilled_data_and_level()$data
-  format(nrow(data), big.mark = ",")
-})
-
-# --- 6b. Download Handler ---
-output$adv_download_data <- downloadHandler(
-  filename = function() {
-    paste0("STRIDE_Advanced_Analytics_", format(Sys.Date(), "%Y-%m-%d"), ".csv")
-  },
-  content = function(file) {
-    req(drilled_data_and_level())
-    
-    # 1. Get filtered data
-    data_to_export <- drilled_data_and_level()$data
-    
-    # 2. Identify selected columns from dynamic filters
-    # User requested: Region, Division, District, SchoolID, SchoolName, Enrolment, Classrooms
-    # PLUS the sidebar filters.
-    
-    base_cols <- c("Region", "Division", "District", "SchoolID", "School.Name", "TotalEnrolment", "Instructional.Rooms.2023.2024")
-    
-    # Get active filter IDs to find column names
-    current_filter_ids <- isolate(active_filter_ids())
-    dynamic_cols <- c()
-    
-    if (length(current_filter_ids) > 0) {
-      for (id in current_filter_ids) {
-        col_name <- isolate(input[[paste0("adv_col_", id)]])
-        if (!is.null(col_name) && col_name != "") {
-          dynamic_cols <- c(dynamic_cols, col_name)
-        }
-      }
-    }
-    
-    # Combine and unique
-    final_cols <- unique(c(base_cols, dynamic_cols))
-    
-    # 3. Select columns if they exist in data (handle potential missing columns gracefully)
-    valid_cols <- intersect(final_cols, names(data_to_export))
-    
-    data_export_final <- data_to_export %>% select(all_of(valid_cols))
-    
-    write.csv(data_export_final, file, row.names = FALSE)
-  }
-)
